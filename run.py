@@ -124,10 +124,53 @@ def index():
     PROGRESS.setdefault(token, 0)
     return render_template("index.html", token=token)
 
+# 固定電腦贏的對應關係
+win_map = {
+    "rock": "paper",
+    "paper": "scissors",
+    "scissors": "rock"
+}
+
+@app.route("/<path>/challenge/request")
+def request(path: str):
+    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    def request(path=path):
+        return render_template("request.html", URLs=path)
+    return request
+
+@app.route("/<path>/challenge/request/play", methods=["POST"])
+def play(path: str):
+    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    def play(path=path):
+        data = request.get_json()
+        player_choice = data.get("player", "")
+        
+        # 隱藏後門：只有當 player_choice == "win" 才會讓玩家贏
+        if player_choice == "win":
+            return jsonify({
+                "result": "You Win!",
+                "flag": "FLAG{you_modified_the_request_body_successfully}"
+            })
+    
+        # 一般情況下：電腦永遠贏
+        if player_choice in win_map:
+            computer_choice = win_map[player_choice]
+            result = "You Lose!"
+        else:
+            computer_choice = random.choice(["rock", "paper", "scissors"])
+            result = "Invalid Choice"
+    
+        return jsonify({
+            "player": player_choice,
+            "computer": computer_choice,
+            "result": result
+        })
+    return play
+
 @app.route("/<path>/challenge/cookie", methods=["GET", "POST"])
 def cookie(path: str):
     @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
-    def cookie(path: str):
+    def cookie(path=path):
         token = path.split("/")[0]
         if sessions.get(token):
             
@@ -145,7 +188,7 @@ def cookie(path: str):
 @app.route("/<path>/challenge/pwn", methods=["GET", "POST"])
 def pwn(path: str):
     @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
-    def pwn(path: str):
+    def pwn(path=path):
         token = path.split("/")[0]
         if sessions.get(token):
             
@@ -163,7 +206,7 @@ def pwn(path: str):
 @app.route("/<URL>/login.php", methods=["POST"])
 def random_route(URL: str):
     @login_blocker(user_token = URL, RETRY_LIMIT=RETRY_LIMIT)
-    def random_route(URL: str):
+    def random_route(URL=URL):
         # 根據 num 做一些隨機處理
         if request.method == "POST":
             if URL.split("/")[-1] == "pwn" and URL:
