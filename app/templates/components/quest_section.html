@@ -1,3 +1,4 @@
+<!-- quest_section.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -31,12 +32,14 @@ async function showNext() {
 
   if (!step || step.type === "end") {
     storyContainer.innerText = "劇情結束！感謝遊玩。";
-    storyContainer.onclick = null;
+    storyContainer.onclick = null; // 劇情結束，移除點擊事件
     return;
   }
 
   if (step.type === "dialogue") {
     storyContainer.innerText = `${step.character}：${step.text}`;
+    // 恢復對話的點擊繼續功能
+    storyContainer.onclick = showNext;
   }
 
   if (step.type === "quest") {
@@ -47,9 +50,13 @@ async function showNext() {
       <p class="mb-4">${q.intro}</p>
       <a target="_blank" href="${q.goto_url}" class="px-4 py-2 bg-blue-600 rounded">前往挑戰</a>
     `;
+    // 恢復任務說明的點擊繼續功能
+    storyContainer.onclick = showNext;
   }
 
   if (step.type === "question") {
+    // 停用容器的點擊事件，避免意外跳過，讓使用者可以點擊輸入框
+    storyContainer.onclick = null;
     storyContainer.innerHTML = `
       <h2 class="text-xl font-bold mb-4">請輸入答案：</h2>
       <input id="answer-input" type="text" class="text-black p-2 rounded w-64 mb-4">
@@ -68,21 +75,19 @@ async function showNext() {
       const data = await res.json();
       document.getElementById("answer-msg").innerText = data.message;
       if (data.success) {
-        showNext();
+        showNext(); // 答對後才繼續劇情
       }
     };
 
-    // 停止點擊跳過
+    // 停止自動前進，等待作答
     return;
   }
 }
 
-// 畫面點擊跳下一段
-storyContainer.onclick = () => {
-  showNext();
-};
+// 初始設定點擊處理器
+storyContainer.onclick = showNext;
 
-// 初始載入
+// 初始載入劇情
 showNext();
 </script>
 
