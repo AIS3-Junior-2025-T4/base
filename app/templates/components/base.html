@@ -1,3 +1,4 @@
+<!-- This file is part of the GB (Gooseberry) project. -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -13,8 +14,9 @@
   {% include 'components/header.html' %}
 
   <!-- 將 token 暴露給前端 JS 使用 -->
-  <script>window.GB = { token: "{{ token|default('') }}" };</script>
+  <script>//window.GB = { token: "{{ token|default('') }}" };</script>
 
   {% block content %}{% endblock %}
 </body>
 </html>
+<!-- Compare this snippet from -->

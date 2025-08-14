@@ -1,3 +1,4 @@
+<!-- This file is part of the base project. -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -13,14 +14,16 @@
   載入中...
 </div>
 
-<script>
+<script hide="true">
 const storyContainer = document.getElementById("story-container");
+let token = "{{ token }}";
 
 // 從 API 拿下一步劇情
 async function fetchNextStory() {
   const res = await fetch("/api/story/next", {
     method: "POST",
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({token: token})
   });
   return await res.json();
 }
@@ -40,12 +43,16 @@ async function showNext() {
   }
 
   if (step.type === "quest") {
-    const qres = await fetch(`/api/quest/${step.quest_id}`);
+      const qres = await fetch(`/api/quest/${step.quest_id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: token })
+      });
     const q = await qres.json();
     storyContainer.innerHTML = `
       <h2 class="text-2xl font-bold mb-4">${q.title}</h2>
       <p class="mb-4">${q.intro}</p>
-      <a target="_blank" href="${q.goto_url}" class="px-4 py-2 bg-blue-600 rounded">前往挑戰</a>
+      <a target="__blank" href="${q.goto_url}" class="px-4 py-2 bg-blue-600 rounded">前往挑戰</a>
     `;
   }
 
@@ -63,7 +70,7 @@ async function showNext() {
       const res = await fetch("/api/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question_id: step.question_id, answer: ans })
+        body: JSON.stringify({ question_id: step.question_id, answer: ans, token: token })
       });
       const data = await res.json();
       document.getElementById("answer-msg").innerText = data.message;
@@ -88,3 +95,4 @@ showNext();
 
 </body>
 </html>
+<!-- This file is part of the base project. -->

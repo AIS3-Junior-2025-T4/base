@@ -1,7 +1,7 @@
 # run.py
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
 from flask_cors import CORS
-from functools import wraps
+from functools import lru_cache, wraps
 import secrets
 import os
 
@@ -73,11 +73,13 @@ STORY = [
 # -----------------------------
 PROGRESS = {}           # token -> 故事索引
 HINT_INDEX = {}         # (token, question_id) -> 已給的提示數量
+sessions = {}
+RETRY_LIMIT = 5
 
 def get_token():
-    if 'token' not in session:
-        session['token'] = secrets.token_hex(16)
-    return session['token']
+    #if 'token' not in session:
+    #    session['token'] = secrets.token_hex(16)
+    return secrets.token_hex(16)#session['token']
 
 def get_progress(token):
     return PROGRESS.get(token, 0)
@@ -85,19 +87,102 @@ def get_progress(token):
 def set_progress(token, idx):
     PROGRESS[token] = idx
 
+def login_blocker(func, user_token="", RETRY_LIMIT=RETRY_LIMIT):
+    #token = request.headers.get("Authorization")
+    @lru_cache(maxsize=10)
+    def counter(token, returnable=False):
+        if not returnable:
+            return -1
+        return counter(token) + 1
+        
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # token = session.get("username")
+        token = user_token
+        
+        if not sessions.get(token, False) or not token:
+            return jsonify({"error": "未授權"}), 403
+            #pass
+        retry_count = counter(token, True)
+        if retry_count > RETRY_LIMIT:
+            return jsonify({"error": "超過嘗試次數，請15分鐘後再試一次"}), 403
+        return func(user_token)
+    return wrapper
+
+
 # -----------------------------
 # 路由
 # -----------------------------
 @app.route("/", methods=["GET"])
 def index():
     token = get_token()
+    if token in sessions.keys():
+        del sessions[token]
+        del PROGRESS[token]
+    sessions[token] = True
     # 允許重整後保持進度，第一次進來預設 0
     PROGRESS.setdefault(token, 0)
     return render_template("index.html", token=token)
 
+@app.route("/<path>/challenge/cookie", methods=["GET", "POST"])
+def cookie(path: str):
+    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    def cookie(path: str):
+        token = path.split("/")[0]
+        if sessions.get(token):
+            
+            sessions[token] = False
+            #session['username'] = oken
+            URL = get_token()
+            sessions[URL] = True
+            URL = f"/{URL}/cookie"
+            return render_template("login.html", URLs=url_for(URL))
+
+        else:
+            return jsonify({"success": False}), 401
+    return cookie
+
+@app.route("/<path>/challenge/pwn", methods=["GET", "POST"])
+def pwn(path: str):
+    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    def pwn(path: str):
+        token = path.split("/")[0]
+        if sessions.get(token):
+            
+            sessions[token] = False
+            #session['username'] = oken
+            URL = get_token()
+            sessions[URL] = True
+            URL = f"/{URL}/pwn"
+            return render_template("login.html", URLs=url_for(URL))
+
+        else:
+            return jsonify({"success": False}), 401
+    return pwn
+
+@app.route("/<URL>/login.php", methods=["POST"])
+def random_route(URL: str):
+    @login_blocker(user_token = URL, RETRY_LIMIT=RETRY_LIMIT)
+    def random_route(URL: str):
+        # 根據 num 做一些隨機處理
+        if request.method == "POST":
+            if URL.split("/")[-1] == "pwn" and URL:
+                data = request.get_json()
+                # username = data.get("username")
+                # password = data.get("password")
+                token = URL.split("/")[0]
+                if sessions.get(token):
+                    
+                    sessions[token] = False
+                    #session['username'] = oken
+                    return render_template("/pwn/login.php")#jsonify({"success": True, "token": token})
+                else:
+                    return jsonify({"success": False}), 401 
+    return random_route
+
 @app.route("/api/story/next", methods=["POST"])
 def story_next():
-    token = get_token()
+    token = request.get_json().get("token")#get_token()
     idx = get_progress(token)
 
     if idx >= len(STORY):
@@ -113,8 +198,9 @@ def story_next():
     set_progress(token, idx + 1)
     return jsonify(step)
 
-@app.route("/api/quest/<quest_id>", methods=["GET"])
+@app.route("/api/quest/<quest_id>", methods=["POST"])
 def quest_detail(quest_id):
+    token = request.get_json().get("token")
     q = QUESTS.get(quest_id)
     if not q:
         return jsonify({"error": "題目不存在"}), 404
@@ -122,7 +208,7 @@ def quest_detail(quest_id):
         "quest_id": quest_id,
         "title": q["title"],
         "intro": q["intro"],
-        "goto_url": q["goto_url"]
+        "goto_url": f"/{token}/{q['goto_url']}"
     })
 
 @app.route("/api/answer", methods=["POST"])
