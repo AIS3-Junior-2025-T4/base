@@ -27,7 +27,9 @@ async function fetchNextStory() {
 
 // 處理不同類型的劇情
 async function showNext() {
+  console.log("showNext called");
   const step = await fetchNextStory();
+  console.log("step:", step);
 
   if (!step || step.type === "end") {
     storyContainer.innerText = "劇情結束！感謝遊玩。";

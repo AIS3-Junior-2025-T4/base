@@ -2,16 +2,26 @@
 {% block title %}Game Box - Home{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-white/10 backdrop-blur-sm py-8">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    {% include 'components/hero-section.html' %}
-    <div class="flex flex-row gap-8">
-      {% include 'components/quest_section.html' %}
-      <div>
-        {% include 'components/dialogue.html' %}
-      </div>
-    </div>
-  </div>
+<!-- Hero 全螢幕 -->
+<div class="min-h-screen w-full bg-[url('/static/images/hero-bg.jpg')] bg-cover bg-center flex items-center justify-center">
+  {% include 'components/hero-section.html' %}
 </div>
-{% endblock %}
 
+<!-- 後續內容 -->
+<div id="content" class="min-h-screen w-full bg-[url('/static/images/hero-bg.jpg')] bg-cover bg-center flex items-center justify-center opacity-0 translate-y-10 transition-all duration-700">
+  {% include 'components/quest_section.html' %}
+  {% include 'components/dialogue.html' %}
+</div>
+
+<script>
+  const content = document.getElementById('content');
+  window.addEventListener('scroll', () => {
+    const scrollPos = window.scrollY + window.innerHeight;
+    const elementPos = content.offsetTop;
+    if (scrollPos > elementPos) {
+      content.classList.remove('opacity-0', 'translate-y-10');
+      content.classList.add('opacity-100', 'translate-y-0');
+    }
+  });
+</script>
+{% endblock %}
