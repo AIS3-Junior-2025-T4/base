@@ -87,28 +87,31 @@ def get_progress(token):
 def set_progress(token, idx):
     PROGRESS[token] = idx
 
-def login_blocker(func, user_token="", RETRY_LIMIT=RETRY_LIMIT):
-    #token = request.headers.get("Authorization")
-    @lru_cache(maxsize=10)
-    def counter(token, returnable=False):
-        if not returnable:
-            return -1
-        return counter(token) + 1
-        
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        # token = session.get("username")
+def login_blocker(user_token="", RETRY_LIMIT=RETRY_LIMIT):
+    def decorator(func):
+        #token = request.headers.get("Authorization")
         token = user_token
-        
-        if not sessions.get(token, False) or not token:
-            return jsonify({"error": "未授權"}), 403
-            #pass
-        retry_count = counter(token, True)
-        if retry_count > RETRY_LIMIT:
-            return jsonify({"error": "超過嘗試次數，請15分鐘後再試一次"}), 403
-        return func(user_token)
-    return wrapper
-
+        @lru_cache(maxsize=10)
+        def counter(token, returnable=False):
+            if not returnable:
+                return -1
+            return counter(token) + 1
+            
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # token = session.get("username")
+            token = user_token
+            
+            if not sessions.get(token) or not token:
+                
+                return jsonify({"error": "未授權"}), 403
+                #pass
+            retry_count = counter(token, True)
+            if retry_count > RETRY_LIMIT:
+                return jsonify({"error": "超過嘗試次數，請15分鐘後再試一次"}), 403
+            return func(token)
+        return wrapper
+    return decorator
 
 # -----------------------------
 # 路由
@@ -116,9 +119,9 @@ def login_blocker(func, user_token="", RETRY_LIMIT=RETRY_LIMIT):
 @app.route("/", methods=["GET"])
 def index():
     token = get_token()
-    if token in sessions.keys():
-        del sessions[token]
-        del PROGRESS[token]
+    #if token in sessions.keys():
+    #    del sessions[token]
+    #    del PROGRESS[token]
     sessions[token] = True
     # 允許重整後保持進度，第一次進來預設 0
     PROGRESS.setdefault(token, 0)
@@ -132,15 +135,15 @@ win_map = {
 }
 
 @app.route("/<path>/challenge/request")
-def request(path: str):
-    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+def req(path: str):
+    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
     def request(path=path):
         return render_template("request.html", URLs=path)
-    return request
+    return request(path)
 
 @app.route("/<path>/challenge/request/play", methods=["POST"])
 def play(path: str):
-    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
     def play(path=path):
         data = request.get_json()
         player_choice = data.get("player", "")
@@ -165,43 +168,44 @@ def play(path: str):
             "computer": computer_choice,
             "result": result
         })
-    return play
+    return play(path)
 
 @app.route("/<path>/challenge/cookie", methods=["GET", "POST"])
 def cookie(path: str):
-    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
     def cookie(path=path):
         token = path.split("/")[0]
         if sessions.get(token):
             
-            sessions[token] = False
+            # sessions[token] = False
             #session['username'] = oken
             URL = get_token()
             sessions[URL] = True
             URL = f"/{URL}/cookie"
-            return render_template("login.html", URLs=url_for(URL))
+            URL = ""
+            return render_template("login.html")#, URLs=URL)
 
         else:
             return jsonify({"success": False}), 401
-    return cookie
+    return cookie(path)
 
 @app.route("/<path>/challenge/pwn", methods=["GET", "POST"])
 def pwn(path: str):
-    @login_blocker(path, RETRY_LIMIT=RETRY_LIMIT)
+    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
     def pwn(path=path):
         token = path.split("/")[0]
         if sessions.get(token):
             
-            sessions[token] = False
+            # sessions[token] = False
             #session['username'] = oken
             URL = get_token()
             sessions[URL] = True
             URL = f"/{URL}/pwn"
-            return render_template("login.html", URLs=url_for(URL))
+            return render_template("login.html")#, URLs=url_for(URL))
 
         else:
             return jsonify({"success": False}), 401
-    return pwn
+    return pwn(path)
 
 @app.route("/<URL>/login.php", methods=["POST"])
 def random_route_login(URL: str):
@@ -221,7 +225,7 @@ def random_route_login(URL: str):
                     return render_template(f"/{URL.split('/')[-1]}/login.php")#jsonify({"success": True, "token": token})
                 else:
                     return jsonify({"success": False}), 401 
-    return random_route
+    return random_route(URL)
 
 @app.route("/<URL>/member.php", methods=["POST"])
 def random_route_member(URL: str):
@@ -241,11 +245,11 @@ def random_route_member(URL: str):
                     return render_template("/cookie/member.php")#jsonify({"success": True, "token": token})
                 else:
                     return jsonify({"success": False}), 401 
-    return random_route
+    return random_route(URL)
 
 @app.route("/api/story/next", methods=["POST"])
 def story_next():
-    token = request.get_json()
+    token = request.get_json() or {}
     token = token.get("token")#get_token()
     idx = get_progress(token)
 
@@ -264,7 +268,7 @@ def story_next():
 
 @app.route("/api/quest/<quest_id>", methods=["POST"])
 def quest_detail(quest_id):
-    token = request.get_json()
+    token = request.get_json() or {}
     token = token.get("token")
     q = QUESTS.get(quest_id)
     if not q:
@@ -273,7 +277,7 @@ def quest_detail(quest_id):
         "quest_id": quest_id,
         "title": q["title"],
         "intro": q["intro"],
-        "goto_url": f"/{token}/{q['goto_url']}"
+        "goto_url": f"/{token}{q['goto_url']}"
     })
 
 @app.route("/api/answer", methods=["POST"])
