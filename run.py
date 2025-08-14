@@ -245,7 +245,8 @@ def random_route_member(URL: str):
 
 @app.route("/api/story/next", methods=["POST"])
 def story_next():
-    token = request.get_json().get("token")#get_token()
+    token = request.get_json()
+    token = token.get("token")#get_token()
     idx = get_progress(token)
 
     if idx >= len(STORY):
@@ -263,7 +264,8 @@ def story_next():
 
 @app.route("/api/quest/<quest_id>", methods=["POST"])
 def quest_detail(quest_id):
-    token = request.get_json().get("token")
+    token = request.get_json()
+    token = token.get("token")
     q = QUESTS.get(quest_id)
     if not q:
         return jsonify({"error": "題目不存在"}), 404
