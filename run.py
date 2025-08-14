@@ -23,39 +23,57 @@ app.config['SECRET_KEY'] = os.urandom(16)
 # 題目資料庫：介紹、前往網址、正確答案與提示
 QUESTS = {
     "q1": {
-        "title": "第一關：幽影中的密語",
-        "intro": "在黑暗中，只有 cookie 會說話。找到它，抄下它。",
-        "goto_url": "/challenge/cookie",  # TODO: 換成你的實際路徑或外部題目網址
-        "answer": "FLAG{this_is_the_first_secret}",
+        "title": "第一關：Linux",
+        "intro": "找出FLAG & 熟悉LINUX指令",
+        "goto_url": "http://xss.ais3.club:10000/",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{linux_basics_ok}",
         "hints": [
-            "瀏覽器的儲存之處不只一個。",
-            "開發者工具 → Application → Cookies。",
-            "看起來像 FLAG 的字串，通常就是它。"
         ]
     },
     "q2": {
-        "title": "第二關：破譯者之眼",
-        "intro": "頁面上什麼都沒有？那就看看原始碼。還不夠？也許要觀察請求。",
-        "goto_url": "/challenge/pwn",  # TODO: 換成你的實際路徑或外部題目網址
-        "answer": "FLAG{another_cool_flag_here}",
+        "title": "第二關：Request",
+        "intro": "BURP入門，想辦法猜拳營電腦吧~",
+        "goto_url": "http://xss.ais3.club:20000/",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "FLAG{you_modified_the_request_body_successfully}",
         "hints": [
-            "右鍵 → 檢視原始碼。",
-            "Network 分頁常有驚喜。",
-            "別忘了搜尋 'FLAG'。"
+        ]
+    },
+    "q3": {
+        "title": "第三關：Burp Suite",
+        "intro": "這是一個登入介面，要怎麼才能登入呢?(學會BURP爆破密碼功能)",
+        "goto_url": "http://xss.ais3.club:30000/",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{easy_brute_force}<",
+        "hints": [
+        ]
+    },
+    "q4": {
+        "title": "第四關：Cookie",
+        "intro": "現在你有帳號密碼了!那要怎麼拿到FLAG呢?(hint:decode,cookie)",
+        "goto_url": "http://xss.ais3.club:40000/login.html",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{c00k13_h4ck_succc3ss}",
+        "hints": [
+        ]
+    },
+    "q5": {
+        "title": "第五關：XSS",
+        "intro": "接觸JAVASCRIPT，了解如何注入網頁",
+        "goto_url": "/challenge/pwn",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{wow_you_are_going_to_win}",
+        "hints": [
         ]
     }
 }
 # 劇情資料庫
 STORY = [
-    {"type": "dialogue", "character": "旁白", "text": "歡迎來到這次的AIS3 junior的營隊, {name}！"},
-    {"type": "dialogue", "character": "旁白", "text": "在這次營隊中，我們將會學到許多有關網路安全前後端的技術。"},
-    {"type": "dialogue", "character": "旁白", "text": "你準備接受挑戰了嗎?"},
+    {"type": "dialogue","text": "歡迎來到這次的AIS3 junior的營隊, {name}！"},
+    {"type": "dialogue","text": "在這次營隊中，我們將會學到許多有關網路安全前後端的技術。"},
+    {"type": "dialogue","text": "你準備接受挑戰了嗎?"},
     {"type": "quest", "quest_id": "q1"},
     {"type": "question", "question_id": "q1"},
-    {"type": "dialogue", "character": "神秘客", "text": "做得好！接下來會更困難。"},
+    {"type": "dialogue", "text": "做得好！接下來會更困難。"},
     {"type": "quest", "quest_id": "q2"},
     {"type": "question", "question_id": "q2"},
-    {"type": "dialogue", "character": "旁白", "text": "恭喜你，{name}，你完成了所有挑戰！"},
+    {"type": "dialogue","text": "恭喜你，{name}，你完成了所有挑戰！"},
     {"type": "end"}
 ]
 

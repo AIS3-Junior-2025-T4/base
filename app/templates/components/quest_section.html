@@ -39,19 +39,19 @@ async function showNext() {
   
   // ... (原本的 if/else 判斷 dialogue, quest, question 保持不變)
   if (step.type === "dialogue") {
-    storyContainer.innerText = `${step.character}：${step.text}`;
+    storyContainer.innerText = `${step.text}`;
     storyContainer.onclick = showNext;
   }
 
   if (step.type === "quest") {
+    storyContainer.onclick = showNext;
     const qres = await fetch(`/api/quest/${step.quest_id}`);
     const q = await qres.json();
-    storyContainer.innerHTML = `
+    storyContainer.innerHTML = `  
       <h2 class="text-2xl font-bold mb-4">${q.title}</h2>
       <p class="mb-4">${q.intro}</p>
       <a target="_blank" href="${q.goto_url}" class="px-4 py-2 bg-blue-600 rounded">前往挑戰</a>
     `;
-    storyContainer.onclick = showNext;
   }
 
   if (step.type === "question") {
