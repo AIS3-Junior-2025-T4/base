@@ -14,6 +14,7 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, 'app', 'static'),
 )
 
+
 print("Template folder:", app.template_folder)
 print("index.html exists?", os.path.exists(os.path.join(app.template_folder, "index.html")))
 
