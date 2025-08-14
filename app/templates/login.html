@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>簡易登入</title>
+        <meta charset="UTF-8">  </head>
+    <body>
+        <h2>會員登入</h2>
+        <form action="{{ URLs }}/login.php" method="post">
+            <label for="username">帳號:</label><br>
+            <input type="text" id="username" name="username"><br><br>
+            <label for="password">密碼:</label><br>
+            <input type="password" id="password" name="password"><br><br>
+            <input type="submit" value="登入">
+        </form>
+    </body>
+
+</html>
