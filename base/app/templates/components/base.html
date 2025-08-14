@@ -1,12 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}{% endblock %}</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/@geist/font/sans.css">
+  <link rel="stylesheet" href="https://unpkg.com/@geist/font/mono.css">
 </head>
-<body>
-    {% block content %}{% endblock %}
+<body class="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 font-sans">
+  {% include 'components/header.html' %}
+
+  <!-- 將 token 暴露給前端 JS 使用 -->
+  <script>window.GB = { token: "{{ token|default('') }}" };</script>
+
+  {% block content %}{% endblock %}
 </body>
 </html>

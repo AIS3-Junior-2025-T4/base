@@ -1,0 +1,189 @@
+<div id="dialogue-container" class="fixed bottom-8 right-8 z-50 w-80 font-sans">
+  <div id="speech-bubble" class="hidden bg-white rounded-2xl p-4 shadow-lg relative">
+    <div class="text-xs text-gray-500 mb-1" id="dlg-title">小貓助手</div>
+    <p id="dialogue-text" class="text-gray-800 text-sm mb-3">點擊小貓開始對話。</p>
+
+    <div id="answer-wrap" class="hidden">
+      <input id="answer-input" class="border px-2 py-1 w-full mb-2 rounded" placeholder="輸入 FLAG..." />
+      <div class="flex gap-2">
+        <button id="hint-btn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded py-1 text-sm">提示</button>
+        <button id="submit-btn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded py-1 text-sm">送出</button>
+      </div>
+    </div>
+    <div id="feedback" class="mt-2 text-sm"></div>
+  </div>
+
+  <!-- 小貓按鈕 -->
+  <button id="cat-btn" class="w-28 h-28 rounded-full shadow-lg overflow-hidden">
+    <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/7818ccbe151d3f3b456c2cc4f6f67a5d-zgGCS9J0Aw69254EGRZkoPSr7gFhak.png" alt="小貓助手" class="w-full h-full object-cover">
+  </button>
+</div>
+
+<script>
+(() => {
+  const catBtn = document.getElementById("cat-btn");
+  const speech = document.getElementById("speech-bubble");
+  const title = document.getElementById("dlg-title");
+  const text = document.getElementById("dialogue-text");
+  const ansWrap = document.getElementById("answer-wrap");
+  const ansInput = document.getElementById("answer-input");
+  const submitBtn = document.getElementById("submit-btn");
+  const hintBtn = document.getElementById("hint-btn");
+  const feedback = document.getElementById("feedback");
+
+  let open = false;
+  let currentQuestion = null; // { question_id }
+
+  catBtn.addEventListener("click", () => {
+    open = !open;
+    speech.classList.toggle("hidden", !open);
+  });
+
+  // 劇情系統丟進來的問題
+  window.addEventListener('gb:question', (ev) => {
+    currentQuestion = ev.detail; // {type:"question", question_id:"q1"}
+    open = true;
+    speech.classList.remove("hidden");
+    title.textContent = "系統";
+    text.textContent = "請輸入旗標以繼續挑戰。";
+    ansWrap.classList.remove("hidden");
+    ansInput.value = "";
+    feedback.textContent = "";
+  });
+
+  submitBtn.addEventListener("click", async () => {
+    if (!currentQuestion) return;
+    const body = {
+      question_id: currentQuestion.question_id,
+      answer: ansInput.value.trim()
+    };
+    const res = await fetch("/api/answer", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    feedback.textContent = data.message || "";
+    feedback.className = "mt-2 text-sm " + (data.success ? "text-green-600" : "text-red-600");
+
+    if (data.success) {
+      // 清空並通知劇情繼續
+      currentQuestion = null;
+      ansWrap.classList.add("hidden");
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('gb:answered'));
+        // 自動收盒：可選
+        // speech.classList.add("hidden");
+      }, 600);
+    }
+  });
+
+  hintBtn.addEventListener("click", async () => {
+    if (!currentQuestion) return;
+    const res = await fetch("/api/hint", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ question_id: currentQuestion.question_id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      feedback.textContent = data.hint;
+      feedback.className = "mt-2 text-sm text-gray-600";
+    }
+  });
+})();
+</script><div id="dialogue-container" class="fixed bottom-8 right-8 z-50 w-80 font-sans">
+  <div id="speech-bubble" class="hidden bg-white rounded-2xl p-4 shadow-lg relative">
+    <div class="text-xs text-gray-500 mb-1" id="dlg-title">小貓助手</div>
+    <p id="dialogue-text" class="text-gray-800 text-sm mb-3">點擊小貓開始對話。</p>
+
+    <div id="answer-wrap" class="hidden">
+      <input id="answer-input" class="border px-2 py-1 w-full mb-2 rounded" placeholder="輸入 FLAG..." />
+      <div class="flex gap-2">
+        <button id="hint-btn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded py-1 text-sm">提示</button>
+        <button id="submit-btn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded py-1 text-sm">送出</button>
+      </div>
+    </div>
+    <div id="feedback" class="mt-2 text-sm"></div>
+  </div>
+
+  <!-- 小貓按鈕 -->
+  <button id="cat-btn" class="w-28 h-28 rounded-full shadow-lg overflow-hidden">
+    <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/7818ccbe151d3f3b456c2cc4f6f67a5d-zgGCS9J0Aw69254EGRZkoPSr7gFhak.png" alt="小貓助手" class="w-full h-full object-cover">
+  </button>
+</div>
+
+<script>
+(() => {
+  const catBtn = document.getElementById("cat-btn");
+  const speech = document.getElementById("speech-bubble");
+  const title = document.getElementById("dlg-title");
+  const text = document.getElementById("dialogue-text");
+  const ansWrap = document.getElementById("answer-wrap");
+  const ansInput = document.getElementById("answer-input");
+  const submitBtn = document.getElementById("submit-btn");
+  const hintBtn = document.getElementById("hint-btn");
+  const feedback = document.getElementById("feedback");
+
+  let open = false;
+  let currentQuestion = null; // { question_id }
+
+  catBtn.addEventListener("click", () => {
+    open = !open;
+    speech.classList.toggle("hidden", !open);
+  });
+
+  // 劇情系統丟進來的問題
+  window.addEventListener('gb:question', (ev) => {
+    currentQuestion = ev.detail; // {type:"question", question_id:"q1"}
+    open = true;
+    speech.classList.remove("hidden");
+    title.textContent = "系統";
+    text.textContent = "請輸入旗標以繼續挑戰。";
+    ansWrap.classList.remove("hidden");
+    ansInput.value = "";
+    feedback.textContent = "";
+  });
+
+  submitBtn.addEventListener("click", async () => {
+    if (!currentQuestion) return;
+    const body = {
+      question_id: currentQuestion.question_id,
+      answer: ansInput.value.trim()
+    };
+    const res = await fetch("/api/answer", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    feedback.textContent = data.message || "";
+    feedback.className = "mt-2 text-sm " + (data.success ? "text-green-600" : "text-red-600");
+
+    if (data.success) {
+      // 清空並通知劇情繼續
+      currentQuestion = null;
+      ansWrap.classList.add("hidden");
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('gb:answered'));
+        // 自動收盒：可選
+        // speech.classList.add("hidden");
+      }, 600);
+    }
+  });
+
+  hintBtn.addEventListener("click", async () => {
+    if (!currentQuestion) return;
+    const res = await fetch("/api/hint", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ question_id: currentQuestion.question_id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      feedback.textContent = data.hint;
+      feedback.className = "mt-2 text-sm text-gray-600";
+    }
+  });
+})();
+</script>

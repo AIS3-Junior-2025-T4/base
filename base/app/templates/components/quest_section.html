@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任務劇情</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+
+<div id="story-container"
+     class="max-w-2xl p-6 text-lg text-center cursor-pointer select-none">
+  載入中...
+</div>
+
+<script>
+const storyContainer = document.getElementById("story-container");
+
+// 從 API 拿下一步劇情
+async function fetchNextStory() {
+  const res = await fetch("/api/story/next", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" }
+  });
+  return await res.json();
+}
+
+// 處理不同類型的劇情
+async function showNext() {
+  const step = await fetchNextStory();
+
+  if (!step || step.type === "end") {
+    storyContainer.innerText = "劇情結束！感謝遊玩。";
+    storyContainer.onclick = null;
+    return;
+  }
+
+  if (step.type === "dialogue") {
+    storyContainer.innerText = `${step.character}：${step.text}`;
+  }
+
+  if (step.type === "quest") {
+    const qres = await fetch(`/api/quest/${step.quest_id}`);
+    const q = await qres.json();
+    storyContainer.innerHTML = `
+      <h2 class="text-2xl font-bold mb-4">${q.title}</h2>
+      <p class="mb-4">${q.intro}</p>
+      <a href="${q.goto_url}" class="px-4 py-2 bg-blue-600 rounded">前往挑戰</a>
+    `;
+  }
+
+  if (step.type === "question") {
+    storyContainer.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">請輸入答案：</h2>
+      <input id="answer-input" type="text" class="text-black p-2 rounded w-64 mb-4">
+      <br>
+      <button id="submit-answer" class="px-4 py-2 bg-green-600 rounded">提交答案</button>
+      <p id="answer-msg" class="mt-4 text-red-400"></p>
+    `;
+
+    document.getElementById("submit-answer").onclick = async () => {
+      const ans = document.getElementById("answer-input").value;
+      const res = await fetch("/api/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question_id: step.question_id, answer: ans })
+      });
+      const data = await res.json();
+      document.getElementById("answer-msg").innerText = data.message;
+      if (data.success) {
+        showNext();
+      }
+    };
+
+    // 停止點擊跳過
+    return;
+  }
+}
+
+// 畫面點擊跳下一段
+storyContainer.onclick = () => {
+  showNext();
+};
+
+// 初始載入
+showNext();
+</script>
+
+</body>
+</html>
