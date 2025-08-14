@@ -1,10 +1,9 @@
 # run.py
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
 from functools import wraps
 import secrets
 import os
-
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,16 +13,13 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, 'app', 'static'),
 )
 
-
-print("Template folder:", app.template_folder)
-print("index.html exists?", os.path.exists(os.path.join(app.template_folder, "index.html")))
-
 CORS(app)
 app.config['SECRET_KEY'] = os.urandom(16)
 
-# -----------------------------
-# 資料庫（可日後搬到 DB）
-# -----------------------------
+# (你的劇情發想和 QUESTS 資料庫保持不變)
+# ...
+# 劇情發想：
+# ...
 # 題目資料庫：介紹、前往網址、正確答案與提示
 QUESTS = {
     "q1": {
@@ -49,24 +45,20 @@ QUESTS = {
         ]
     }
 }
-
-# 劇情資料庫：type 支援
-# - dialogue：敘事
-# - quest：顯示題目介紹與「前往」按鈕（quest_id 對應 QUESTS）
-# - question：彈出對話框，等待答題（question_id 對應 QUESTS）
-# - end：結束
+# 劇情資料庫
 STORY = [
-    {"type": "dialogue", "character": "旁白", "text": "這是一個寂靜的夜晚，你收到一封神秘的信件…"},
-    {"type": "dialogue", "character": "神秘客", "text": "如果你能看到這則訊息，代表你就是我們要找的人。"},
-    {"type": "dialogue", "character": "神秘客", "text": "我們需要你的幫助。但首先，你需要證明自己的能力。"},
-    {"type": "quest", "quest_id": "q1"},          # 顯示 q1 的題目卡
-    {"type": "question", "question_id": "q1"},    # 等待 q1 作答；答對才會繼續
+    {"type": "dialogue", "character": "旁白", "text": "歡迎來到這次的AIS3 junior的營隊, {name}！"},
+    {"type": "dialogue", "character": "旁白", "text": "在這次營隊中，我們將會學到許多有關網路安全前後端的技術。"},
+    {"type": "dialogue", "character": "旁白", "text": "你準備接受挑戰了嗎?"},
+    {"type": "quest", "quest_id": "q1"},
+    {"type": "question", "question_id": "q1"},
     {"type": "dialogue", "character": "神秘客", "text": "做得好！接下來會更困難。"},
     {"type": "quest", "quest_id": "q2"},
     {"type": "question", "question_id": "q2"},
-    {"type": "dialogue", "character": "旁白", "text": "恭喜你完成所有挑戰！"},
+    {"type": "dialogue", "character": "旁白", "text": "恭喜你，{name}，你完成了所有挑戰！"},
     {"type": "end"}
 ]
+
 
 # -----------------------------
 # 狀態：用 session token 管理每個玩家
@@ -88,31 +80,47 @@ def set_progress(token, idx):
 # -----------------------------
 # 路由
 # -----------------------------
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "POST"])
 def index():
     token = get_token()
-    # 允許重整後保持進度，第一次進來預設 0
     PROGRESS.setdefault(token, 0)
+    
+    # 如果是從名字輸入框提交的
+    if request.method == "POST":
+        player_name = request.form.get("name")
+        if player_name:
+            session['player_name'] = player_name
+            # 重置進度，以免舊玩家換名字後進度錯亂
+            set_progress(token, 0)
+        # 重新導向回首頁，瀏覽器會用 GET 方法請求
+        return redirect(url_for('index'))
+
+    # 一般 GET 請求，直接渲染頁面
+    # 模板可以透過 session.player_name 判斷是否已輸入名字
     return render_template("index.html", token=token)
 
 @app.route("/api/story/next", methods=["POST"])
 def story_next():
     token = get_token()
+    player_name = session.get('player_name', '挑戰者') # 從 session 獲取名字
     idx = get_progress(token)
 
     if idx >= len(STORY):
         return jsonify({"type": "end"})
 
-    step = STORY[idx]
+    step = STORY[idx].copy() # 使用 .copy() 避免修改原始 STORY 列表
 
-    # 規則：遇到 question 不自動前進，等答對再往下
+    # **核心邏輯：替換劇情中的 {name}**
+    if "text" in step:
+        step["text"] = step["text"].replace("{name}", player_name)
+
     if step["type"] == "question":
         return jsonify(step)
 
-    # 其他類型：先回傳，再把進度 +1
     set_progress(token, idx + 1)
     return jsonify(step)
 
+# 其他 API 路由 (/api/quest/<quest_id>, /api/answer, /api/hint, /healthz) 保持不變
 @app.route("/api/quest/<quest_id>", methods=["GET"])
 def quest_detail(quest_id):
     q = QUESTS.get(quest_id)
@@ -145,7 +153,6 @@ def submit_answer():
         return jsonify({"success": False, "message": "題目不存在。"}), 404
 
     if ans == q["answer"]:
-        # 答對才推進劇情
         set_progress(token, idx + 1)
         return jsonify({"success": True, "message": "答案正確！繼續前進。"})
     else:
@@ -173,6 +180,7 @@ def get_hint():
 @app.route("/healthz")
 def health():
     return jsonify({"ok": True})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
