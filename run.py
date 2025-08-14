@@ -204,12 +204,12 @@ def pwn(path: str):
     return pwn
 
 @app.route("/<URL>/login.php", methods=["POST"])
-def random_route(URL: str):
+def random_route_login(URL: str):
     @login_blocker(user_token = URL, RETRY_LIMIT=RETRY_LIMIT)
     def random_route(URL=URL):
         # 根據 num 做一些隨機處理
         if request.method == "POST":
-            if URL.split("/")[-1] == "pwn" and URL:
+            if (URL.split("/")[-1] == "pwn" or URL.split("/")[-1] == "cookie") and URL:
                 data = request.get_json()
                 # username = data.get("username")
                 # password = data.get("password")
@@ -218,7 +218,27 @@ def random_route(URL: str):
                     
                     sessions[token] = False
                     #session['username'] = oken
-                    return render_template("/pwn/login.php")#jsonify({"success": True, "token": token})
+                    return render_template(f"/{URL.split('/')[-1]}/login.php")#jsonify({"success": True, "token": token})
+                else:
+                    return jsonify({"success": False}), 401 
+    return random_route
+
+@app.route("/<URL>/member.php", methods=["POST"])
+def random_route_member(URL: str):
+    @login_blocker(user_token = URL, RETRY_LIMIT=RETRY_LIMIT)
+    def random_route(URL=URL):
+        # 根據 num 做一些隨機處理
+        if request.method == "POST":
+            if URL.split("/")[-1] == "cookie" and URL:
+                data = request.get_json()
+                # username = data.get("username")
+                # password = data.get("password")
+                token = URL.split("/")[0]
+                if sessions.get(token):
+                    
+                    sessions[token] = False
+                    #session['username'] = oken
+                    return render_template("/cookie/member.php")#jsonify({"success": True, "token": token})
                 else:
                     return jsonify({"success": False}), 401 
     return random_route
