@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Linux 指令練習（初學者）</title>
+    <link rel="stylesheet" href={{ url_for('static', filename='css/style.css') }}/>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Linux 指令練習（初學者）</h1>
+        <p>支援：<code>pwd</code>、<code>ls</code>（含 <code>-a</code>）、<code>cd</code>、<code>cat</code>、<code>rm</code>、<code>help</code>、<code>reset</code></p>
+        <button id="resetBtn" title="重置環境">重置環境</button>
+      </header>
+
+      <main>
+        <div id="terminal" class="terminal" aria-live="polite"></div>
+        <form id="cmdForm" autocomplete="off">
+          <span id="cwd" class="cwd">/</span>
+          <input id="cmdInput" type="text" placeholder="輸入指令，例如：ls -a 或 cat 檔案" autofocus />
+          <button type="submit">執行</button>
+        </form>
+      </main>
+
+      <footer>
+        <p>任務：<br/>
+        1) 找到資料夾中的 <strong>hint1</strong>。<br/>
+        2) 讀取 <strong>hint1</strong>，得知 <strong>hint2</strong> 在哪。<br/>
+        3) 前往根目錄，<strong>hint2</strong>，找到 flag 的路徑與檔名。<br/>
+        4) 找到 flag。</p>
+      </footer>
+    </div>
+    <script src={{ url_for('static', filename='js/app.js') }}></script>
+  </body>
+</html>

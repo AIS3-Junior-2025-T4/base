@@ -4,9 +4,21 @@ from flask_cors import CORS
 from functools import lru_cache, wraps
 import secrets
 import os
+import re
+import socket
 
+from app.linuxCMD import *
 
+BOT_PORT = int(os.getenv("BOT_PORT", 7777))
+BOT_HOST = os.getenv("BOT_HOST", "localhost")
+# 取得 main.py 檔案所在的目錄的絕對路徑
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 將 'notes' 資料夾的路徑與其拼接
+NOTES_DIR = os.path.join(BASE_DIR, "notes")
+
+# 確保 notes 資料夾存在，如果不存在就建立它
+if not os.path.exists(NOTES_DIR):
+    os.makedirs(NOTES_DIR)
 
 app = Flask(
     __name__,
@@ -68,6 +80,121 @@ STORY = [
     {"type": "end"}
 ]
 
+QUESTS = {
+    "q1": {
+        "title": "第一關：Linux",
+        "intro": "找出FLAG & 熟悉LINUX指令",
+        "goto_url": "/challenge/linux",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{linux_basics_ok}",
+        "hints": [
+        ]
+    },
+    "q2": {
+        "title": "第二關：Request",
+        "intro": "BURP入門，想辦法猜拳營電腦吧~",
+        "goto_url": "/challenge/request",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "FLAG{you_modified_the_request_body_successfully}",
+        "hints": [
+        ]
+    },
+    "q3": {
+        "title": "第三關：Burp Suite",
+        "intro": "這是一個登入介面，要怎麼才能登入呢?(學會BURP爆破密碼功能)",
+        "goto_url": "/challenge/pwn",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{easy_brute_force}",
+        "hints": [
+        ]
+    },
+    "q4": {
+        "title": "第四關：Cookie",
+        "intro": "現在你有帳號密碼了!那要怎麼拿到FLAG呢?(hint:decode,cookie)",
+        "goto_url": "/challenge/cookie",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{c00k13_h4ck_succc3ss}",
+        "hints": [
+        ]
+    },
+    "q5": {
+        "title": "第五關：XSS",
+        "intro": "接觸JAVASCRIPT，了解如何注入網頁",
+        "goto_url": "/challenge/xss",  # TODO: 換成你的實際路徑或外部題目網址
+        "answer": "flag{wow_you_are_going_to_win}",
+        "hints": [
+        ]
+    }
+}
+# 劇情資料庫
+STORY = [
+    {"type": "dialogue", "text": "歡迎來到這次的AIS3 junior的營隊,  __{name}__ ！"},
+    {"type": "dialogue", "text": "在這次營隊中，我們將會學到許多有關網路安全前後端的技術"},
+    {"type": "dialogue", "text": "你準備接受挑戰了嗎?"},
+    {"type": "dialogue", "text": "溫馨提示，請勿將本闖關所學習到的技術用於非法用途\n畢竟嘛~~~我們是一群好駭客呀"},
+    {"type": "dialogue", "text": "第一天課程："},
+    {"type": "dialogue", "text": "早上，講師三角snake為了讓 __{name}__ 知道\n 身為一個好駭客都需要使用linux\n於是跟他分享了linux的相關特點與優勢\n如:開源、網頁伺服器常用Linux等..."},
+    {"type": "dialogue", "text": "在介紹完這些後，三角snake告訴了 __{name}__ linux的相關指令: \nls # 查看當下目錄\nls -a # 查看當下目錄(可以看到隱藏資料)\ncd /{dir_name} # 移動到{dir_name}資料夾\npwd # 自己在哪\ncat {file_name} # 看{file_name}的內容......"},
+    {"type": "dialogue", "text": "在介紹完這些後，三角snake給了 __{name}__ 一個小測驗\n以證明他是不是真的學會了......"},
+    
+    {"type": "quest", "quest_id": "q1", "title": "第一關：Linux"},
+    {"type": "dialogue", "text": "挑戰者需要利用剛剛學習到的相關指令\n先找出hint1，然後找到hint2，最終找出flag在哪裡"},
+    {"type": "question", "question_id": "q1"},
+
+    {"type": "dialogue", "text": "做得好！接下來會更困難"},
+    {"type": "dialogue", "text": "吃過美味的肯德基後， __{name}__ 精神滿滿的回去上接下來下午的課程......"},
+    {"type": "dialogue", "text": "課程剛開始，一位名為歐薩卡的助教跟 __{name}__ 介紹了\n 中電會(SCAICT)及南臺灣學生資訊社群(SCIST)"},
+    {"type": "dialogue", "text": "經由歐薩卡的介紹，你得知原來在台灣，有著如此豐富的資訊交流環境"},
+    {"type": "dialogue", "text": " __{name}__ 在經過審慎的評估過後，決定兩個都加入\n並決定多與這些社群中志同道合的同學們互相交流、互相成長"},
+    {"type": "dialogue", "text": "之後，三角snake才開始介紹網路-前端給 __{name}__ 聽\n __{name}__ 知道了前端三件套:HTML、JavaScript、CSS\n還知道了Header、Request Body是什麼"},
+    {"type": "dialogue", "text": "五點，飢腸轆轆的 __{name}__ 在上完一天的課程後\n決定去吃炸豬排......這燉飯還因為學生的身份獲得了一杯招待飲料\n真是太幸運了!!!\n唯一美中不足的就是......不小心將應該倒在沙拉上的和風醬倒在了自己的褲子上......." },
+    {"type": "dialogue", "text": "六點半， __{name}__ 回到了教室，開始寫三角snake給他佈置的作業"},
+    
+    {"type": "quest", "quest_id": "q2", "title": "第二關：Request"},
+    {"type": "dialogue", "text": "這是今天的作業，來試試看BURP入門，想辦法猜拳贏過電腦吧~"},
+    {"type": "question", "question_id": "q2"},
+
+    {"type": "dialogue", "text": "九點， __{name}__ 拖著疲憊的步伐回到了宿舍\n並在盥洗完成後早早的睡下了，也結束這充實的一天"},
+    {"type": "dialogue", "text": "第二天課程："},
+    {"type": "dialogue", "text": "一早就起床的 __{name}__ ，帶著愉快的心情去吃早餐，並期待著今天的課程......"},
+    {"type": "dialogue", "text": "九點， __{name}__ 準時打卡進入教室，  早上的課程依舊是由三角蛇教授......"},
+    {"type": "dialogue", "text": "課程過的很快，轉眼便到了下午下午的課程\n是由一位叫vincent的講師講解，內容是網頁安全的後端"},
+    {"type": "dialogue", "text": "課程十分的困難，但認真的 __{name}__ 還是全部都學會了......\n今天學的內容主要是SQL Injection、XSS和CSRF等攻擊手法與防禦之道"},
+    
+    {"type": "quest", "quest_id": "q3", "title": "第三關：Burp Suite"},
+    {"type": "dialogue", "text": "這是一個登入介面，要怎麼才能登入呢?(試著學會BURP爆破密碼功能吧)"},
+    {"type": "question", "question_id": "q3"},
+
+    {"type": "dialogue", "text": "晚上，則是最令 __{name}__ 期待的資安講座，講座開始前，有位自稱馮教授的講師也向 __{name}__ 推薦了一個社群——北台灣資訊社群"},
+    {"type": "dialogue", "text": "於是，今晚的 __{name}__ 又又又加入了一個社群"},
+    {"type": "dialogue", "text": "咳咳~說回正題這次的講座是請來奧義智慧的創辦人來對 __{name}__ 分享他的經歷，同時也告訴 __{name}__ 現在的AI發展趨勢， __{name}__ 受益良多......"},
+    {"type": "dialogue", "text": "然而也就再這時，他收到了一個令人震驚的消息——颱風要來了，活動將提早結束了......"},
+    {"type": "dialogue", "text": " __{name}__ 默默的走回宿舍，沉默是今晚的 __{name}__  __{name}__ 沮喪的回到了宿舍，準備洗洗睡了"},
+    {"type": "dialogue", "text": "但是在被子蓋上的前一刻， __{name}__ 猛然想起......作業忘了寫了、專題也忘了討論了......"},
+    
+    {"type": "quest", "quest_id": "q4", "title": "第四關：Cookie"},
+    {"type": "dialogue", "text": "現在你有帳號密碼了!那要怎麼拿到FLAG呢?(hint:decode,cookie)"},
+    {"type": "question", "question_id": "q4"},
+
+    {"type": "dialogue", "text": "於是他一個彈射起步，從這座歷史悠久的床上跳了下來開始做起今日的題目"},
+    {"type": "dialogue", "text": "......." },
+    {"type": "dialogue", "text": "第三天的陽光緩緩升起，正在夢中的黃金海岸看日出的 __{name}__ 也緩緩的醒來"},
+    {"type": "dialogue", "text": "很快，今天的課程開始了，今天的課程主要是將網路後端的內容講完"},
+    {"type": "dialogue", "text": "時間過的很快.......最後半天的課程都已經結束了中午的時間為作業時間， __{name}__ 也跟著大家一起做作業"},
+    {"type": "dialogue", "text": "時間過的很快，眨眼就已經到了分別的時候儘管大家都很不捨，大家還是在收拾完行李後，各回各家......"},
+    {"type": "dialogue", "text": "然而......事情遠沒有結束，因為還有個專題大魔王還沒做"},
+    {"type": "dialogue", "text": "8/13.......熬夜中......"},
+    
+    {"type": "quest", "quest_id": "q5", "title": "第五關：XSS"},
+    {"type": "dialogue", "text": "最後一關了！接觸JAVASCRIPT，了解如何注入網頁吧"},
+    {"type": "question", "question_id": "q5"},
+
+    {"type": "dialogue", "text": "8/14......熬夜中......."},
+    {"type": "dialogue", "text": " __{name}__ 與組員僅趕慢趕終於將專題做完送出了!"},
+    {"type": "dialogue", "text": "8/19____看著AIS3的貼文......"},
+    {"type": "dialogue", "text": "......"},
+    {"type": "dialogue", "text": "......"},
+    {"type": "dialogue", "text": "最佳專題!"},
+    {"type": "dialogue", "text": "恭喜你， __{name}__ ，你完成了所有挑戰！"},
+    {"type": "end"}
+]
+
 # -----------------------------
 # 狀態：用 session token 管理每個玩家
 # -----------------------------
@@ -80,6 +207,10 @@ def get_token():
     #if 'token' not in session:
     #    session['token'] = secrets.token_hex(16)
     return secrets.token_hex(16)#session['token']
+
+def get_session_id():
+    return session.get("player_name")
+    
 
 def get_progress(token):
     return PROGRESS.get(token, 0)
@@ -116,7 +247,7 @@ def login_blocker(user_token="", RETRY_LIMIT=RETRY_LIMIT):
 # -----------------------------
 # 路由
 # -----------------------------
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "POST"])
 def index():
     token = get_token()
     #if token in sessions.keys():
@@ -125,8 +256,41 @@ def index():
     sessions[token] = True
     # 允許重整後保持進度，第一次進來預設 0
     PROGRESS.setdefault(token, 0)
+    # 如果是從名字輸入框提交的
+    if request.method == "POST":
+        player_name = request.form.get("name")
+        if player_name:
+            session['player_name'] = player_name
+            # 重置進度，以免舊玩家換名字後進度錯亂
+            set_progress(token, 0)
+        # 重新導向回首頁，瀏覽器會用 GET 方法請求
+        return redirect(url_for('index'))
     return render_template("index.html", token=token)
 
+@app.route("/<path>/challenge/linux", methods=["GET"])
+def linux(path: str):
+    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
+    def linux(path=path):
+        return render_template("linuxCMD/index.html")
+    return linux(path)
+
+@app.route("/api/exec", methods=["POST"])
+def api_exec():
+    st = get_or_create_state()
+    data = request.get_json(force=True, silent=True) or {}
+    cmd = data.get("cmd", "")
+    output = run_command(st, cmd)
+    return jsonify({"output": output, "cwd": st["cwd"]})
+
+@app.route("/api/reset", methods=["POST"])
+def api_reset():
+    st = get_or_create_state()
+    sid = get_session_id()
+    st["cwd"] = "/home/user"
+    st["fs"] = build_initial_fs(seed=sid)
+    return jsonify({"ok": True, "cwd": st["cwd"]})
+
+# Q2 request
 # 固定電腦贏的對應關係
 win_map = {
     "rock": "paper",
@@ -134,7 +298,7 @@ win_map = {
     "scissors": "rock"
 }
 
-@app.route("/<path>/challenge/request")
+@app.route("/<path>/challenge/request", methods=["GET", "POST"])
 def req(path: str):
     @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
     def request(path=path):
@@ -170,6 +334,26 @@ def play(path: str):
         })
     return play(path)
 
+# Q3 
+@app.route("/<path>/challenge/pwn", methods=["GET", "POST"])
+def pwn(path: str):
+    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
+    def pwn(path=path):
+        token = path.split("/")[0]
+        if sessions.get(token):
+            
+            # sessions[token] = False
+            #session['username'] = oken
+            URL = get_token()
+            sessions[URL] = True
+            URL = f"/{URL}/pwn"
+            return render_template("login.html")#, URLs=url_for(URL))
+
+        else:
+            return jsonify({"success": False}), 401
+    return pwn(path)
+
+# Q4
 @app.route("/<path>/challenge/cookie", methods=["GET", "POST"])
 def cookie(path: str):
     @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
@@ -188,24 +372,6 @@ def cookie(path: str):
         else:
             return jsonify({"success": False}), 401
     return cookie(path)
-
-@app.route("/<path>/challenge/pwn", methods=["GET", "POST"])
-def pwn(path: str):
-    @login_blocker(user_token=path, RETRY_LIMIT=RETRY_LIMIT)
-    def pwn(path=path):
-        token = path.split("/")[0]
-        if sessions.get(token):
-            
-            # sessions[token] = False
-            #session['username'] = oken
-            URL = get_token()
-            sessions[URL] = True
-            URL = f"/{URL}/pwn"
-            return render_template("login.html")#, URLs=url_for(URL))
-
-        else:
-            return jsonify({"success": False}), 401
-    return pwn(path)
 
 @app.route("/<URL>/login.php", methods=["POST"])
 def random_route_login(URL: str):
@@ -247,16 +413,77 @@ def random_route_member(URL: str):
                     return jsonify({"success": False}), 401 
     return random_route(URL)
 
+# Q5
+@app.route("/<path>/challenge/xss", methods=["GET", "POST"])
+def xss(path: str):
+    @login_blocker(user_token = URL, RETRY_LIMIT=RETRY_LIMIT)
+    def xss(path=path):
+        if request.method == "POST":
+            note = request.form.get("note")
+            note_id = uuid.uuid4().hex
+            # --- 修改這裡，使用我們建立好的絕對路徑 ---
+            note_path = os.path.join(NOTES_DIR, f"{note_id}.txt")
+            with open(note_path, "w+") as f:
+                f.write(note)
+            return redirect(url_for("view_note", note_id=note_id))
+
+        return render_template("xss/index.html")
+    return xss(path)
+
+@app.route("/note/<note_id>")
+def view_note(note_id):
+    # --- 修改這裡，使用我們建立好的絕對路徑 ---
+    note_path = os.path.join(NOTES_DIR, f"{note_id}.txt")
+    if not os.path.exists(note_path):
+        return "Note not found", 404
+
+    with open(note_path, "r") as f:
+        note = f.read()
+    return render_template("xss/note.html", note=note)
+
+@app.route("/<path>/report", methods=["GET", "POST"])
+def report(path: str):
+    response = None
+    if request.method == "POST":
+        url = request.form["url"]
+        pattern = "^http://" + request.host.replace(".", "\\.") + "/"
+        print(f"{pattern=}")
+        if not url or not re.match(pattern, url):
+            return "Invalid URL", 400
+
+        print(f"[+] Sending {url} to bot")
+
+        try:
+            client = socket.create_connection((BOT_HOST, BOT_PORT))
+            client.sendall(url.encode())
+
+            response = []
+            while True:
+                data = client.recv(1024)
+                if not data:
+                    break
+                response.append(data.decode())
+            client.close()
+            return "".join(response)
+        except Exception as e:
+            print(e)
+            return "Something is wrong...", 500
+    return render_template("xss/report.html", response=response)
+
 @app.route("/api/story/next", methods=["POST"])
 def story_next():
     token = request.get_json() or {}
     token = token.get("token")#get_token()
     idx = get_progress(token)
-
+    player_name = session.get('player_name', '挑戰者') # 從 session 獲取名字
+    
     if idx >= len(STORY):
         return jsonify({"type": "end"})
 
     step = STORY[idx]
+    
+    if "text" in step:
+        step["text"] = step["text"].replace("__{name}__", player_name)
 
     # 規則：遇到 question 不自動前進，等答對再往下
     if step["type"] == "question":

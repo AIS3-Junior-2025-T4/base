@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XSS - Video Button</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans Mono", monospace;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 100%;
+        max-width: 500px;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+        font-weight: 700;
+      }
+
+      .ctf-info {
+        background-color: #e0f7fa;
+        border: 1px solid #00acc1;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        text-align: left;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      textarea {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: inherit;
+      }
+
+      .btn {
+        display: inline-block;
+        color: white;
+        background-color: rgb(0, 143, 48);
+        font-size: 16px;
+        padding: 10px 28px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
+      }
+      .btn:hover {
+        background-color: rgb(2, 121, 41);
+      }
+      .btn:active {
+        margin-top: 15px;
+        margin-left: 5px;
+        box-shadow: 0 0 0 rgba(0, 0, 0, 1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🌏XSS - Video Button</h1>
+
+      <div class="ctf-info">
+        <h3>Challenge Info</h3>
+        <p>
+          這是一個 XSS 漏洞的 CTF 題目。請你利用注入惡意 JS 的方式獲得 FLAG。
+        </p>
+        <p>
+          <b>[Hint]:</b> 管理員將會點擊你提交的按鈕連結，並將 FLAG 發送到你指定的 Webhook。
+        </p>
+      </div>
+
+      <form method="post">
+        <textarea
+          name="note"
+          rows="4"
+          cols="50"
+          placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ&pp=ygUEcmljaw%3D%3D"
+        ></textarea
+        ><br />
+        <button class="btn" type="submit">Create Video Button</button>
+      </form>
+      <br />
+      <form action="/report" method="get">
+        <button class="btn" type="submit" style="background-color: red">
+          Report to admin
+        </button>
+      </form>
+    </div>
+  </body>
+</html>
